@@ -442,6 +442,7 @@ private:
   su2double Cauchy_Eps;	/*!< \brief Epsilon used for the convergence. */
 	unsigned long Wrt_Sol_Freq,	/*!< \brief Writing solution frequency. */
 	Wrt_Sol_Freq_DualTime,	/*!< \brief Writing solution frequency for Dual Time. */
+    Wrt_Surf_Freq_DualTime,	/*!< \brief Writing surface solution frequency for Dual Time. */
 	Wrt_Con_Freq,				/*!< \brief Writing convergence history frequency. */
 	Wrt_Con_Freq_DualTime;				/*!< \brief Writing convergence history frequency. */
 	bool Wrt_Unsteady;  /*!< \brief Write unsteady data adding header and prefix. */
@@ -2249,6 +2250,12 @@ public:
 	 * \return It writes the solution file with this frequency.
 	 */
 	unsigned long GetWrt_Sol_Freq_DualTime(void);
+    
+    /*!
+     * \brief Get the frequency for writing the solution file in Dual Time.
+     * \return It writes the solution file with this frequency.
+     */
+     unsigned long GetWrt_Surf_Freq_DualTime(void);
 
 	/*!
 	 * \brief Get the frequency for writing the convergence file.

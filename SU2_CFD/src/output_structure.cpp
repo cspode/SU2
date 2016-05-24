@@ -6536,14 +6536,9 @@ void COutput::SetResult_Files(CSolver ****solver_container, CGeometry ***geometr
       
       /*--- Write a native restart file ---*/
 
-      if (((iExtIter == 0) || ((iExtIter % config[iZone]->GetWrt_Sol_Freq() == 0) ||
-              ((iExtIter - 1) % config[iZone]->GetWrt_Sol_Freq() == 0)))) {
+      if (rank == MASTER_NODE) cout << "Writing SU2 native restart file." << endl;
+      SetRestart(config[iZone], geometry[iZone][MESH_0], solver_container[iZone][MESH_0] , iZone);
 
-        cout << "Writing SU2 native restart file." << endl;
-
-        SetRestart(config[iZone], geometry[iZone][MESH_0], solver_container[iZone][MESH_0], iZone);
-      }
-      
       if (Wrt_Vol) {
         
         switch (FileFormat) {
