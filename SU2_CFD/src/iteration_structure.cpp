@@ -2064,54 +2064,75 @@ void SetGrid_Movement(CGeometry **geometry_container, CSurfaceMovement *surface_
       /*--- Translating ---*/
       
       /*--- Compute the new node locations for moving markers ---*/
-      
-      surface_movement->Surface_Translating(geometry_container[MESH_0],
-                                            config_container, ExtIter, iZone);
-      /*--- Deform the volume grid around the new boundary locations ---*/
-      
-      if (rank == MASTER_NODE)
-        cout << " Deforming the volume grid." << endl;
-      grid_movement->SetVolume_Deformation(geometry_container[MESH_0],
-                                           config_container, true);
+      if (config_container->GetTranslation_Rate_X(iZone) != 0.0 ||
+          config_container->GetTranslation_Rate_Y(iZone) != 0.0 ||
+          config_container->GetTranslation_Rate_Z(iZone) != 0.0) {
+        
+        surface_movement->Surface_Translating(geometry_container[MESH_0],
+                                              config_container, ExtIter, iZone);
+
+        /*--- Deform the volume grid around the new boundary locations ---*/
+
+        if (rank == MASTER_NODE)
+          cout << " Deforming the volume grid." << endl;
+        grid_movement->SetVolume_Deformation(geometry_container[MESH_0],
+                                             config_container, true);
+      }      
       
       /*--- Plunging ---*/
       
       /*--- Compute the new node locations for moving markers ---*/
       
-      surface_movement->Surface_Plunging(geometry_container[MESH_0],
-                                         config_container, ExtIter, iZone);
-      /*--- Deform the volume grid around the new boundary locations ---*/
-      
-      if (rank == MASTER_NODE)
-        cout << " Deforming the volume grid." << endl;
-      grid_movement->SetVolume_Deformation(geometry_container[MESH_0],
-                                           config_container, true);
+      if (config_container->GetPlunging_Ampl_X(iZone) != 0.0 ||
+          config_container->GetPlunging_Ampl_Y(iZone) != 0.0 ||
+          config_container->GetPlunging_Ampl_Z(iZone) != 0.0) {
+        
+        surface_movement->Surface_Plunging(geometry_container[MESH_0],
+                                           config_container, ExtIter, iZone);
+
+        /*--- Deform the volume grid around the new boundary locations ---*/
+
+        if (rank == MASTER_NODE)
+          cout << " Deforming the volume grid." << endl;
+        grid_movement->SetVolume_Deformation(geometry_container[MESH_0],
+                                             config_container, true);
+      }      
       
       /*--- Pitching ---*/
       
       /*--- Compute the new node locations for moving markers ---*/
       
-      surface_movement->Surface_Pitching(geometry_container[MESH_0],
-                                         config_container, ExtIter, iZone);
-      /*--- Deform the volume grid around the new boundary locations ---*/
-      
-      if (rank == MASTER_NODE)
-        cout << " Deforming the volume grid." << endl;
-      grid_movement->SetVolume_Deformation(geometry_container[MESH_0],
-                                           config_container, true);
+      if (config_container->GetPitching_Ampl_X(iZone) != 0.0 ||
+          config_container->GetPitching_Ampl_Y(iZone) != 0.0 ||
+          config_container->GetPitching_Ampl_Z(iZone) != 0.0) {
+
+        surface_movement->Surface_Pitching(geometry_container[MESH_0],
+                                           config_container, ExtIter, iZone);
+        /*--- Deform the volume grid around the new boundary locations ---*/
+
+        if (rank == MASTER_NODE)
+          cout << " Deforming the volume grid." << endl;
+        grid_movement->SetVolume_Deformation(geometry_container[MESH_0],
+                                             config_container, true);
+      }
       
       /*--- Rotating ---*/
       
       /*--- Compute the new node locations for moving markers ---*/
       
-      surface_movement->Surface_Rotating(geometry_container[MESH_0],
-                                         config_container, ExtIter, iZone);
-      /*--- Deform the volume grid around the new boundary locations ---*/
+      if (config_container->GetRotation_Rate_X(iZone) != 0.0 ||
+          config_container->GetRotation_Rate_Y(iZone) != 0.0 ||
+          config_container->GetRotation_Rate_Z(iZone) != 0.0) {
       
-      if (rank == MASTER_NODE)
-        cout << " Deforming the volume grid." << endl;
-      grid_movement->SetVolume_Deformation(geometry_container[MESH_0],
-                                           config_container, true);
+        surface_movement->Surface_Rotating(geometry_container[MESH_0],
+                                           config_container, ExtIter, iZone);
+        /*--- Deform the volume grid around the new boundary locations ---*/
+
+        if (rank == MASTER_NODE)
+          cout << " Deforming the volume grid." << endl;
+        grid_movement->SetVolume_Deformation(geometry_container[MESH_0],
+                                             config_container, true);
+      }
       
       /*--- Update the grid velocities on the fine mesh using finite
        differencing based on node coordinates at previous times. ---*/
