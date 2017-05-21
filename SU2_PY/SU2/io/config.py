@@ -3,7 +3,7 @@
 ## \file config.py
 #  \brief python package for config 
 #  \author T. Lukaczyk, F. Palacios
-#  \version 4.2.0 "Cardinal"
+#  \version 5.0.0 "Raven"
 #
 # SU2 Lead Developers: Dr. Francisco Palacios (Francisco.D.Palacios@boeing.com).
 #                      Dr. Thomas D. Economon (economon@stanford.edu).
@@ -13,8 +13,10 @@
 #                 Prof. Nicolas R. Gauger's group at Kaiserslautern University of Technology.
 #                 Prof. Alberto Guardone's group at Polytechnic University of Milan.
 #                 Prof. Rafael Palacios' group at Imperial College London.
+#                 Prof. Edwin van der Weide's group at the University of Twente.
+#                 Prof. Vincent Terrapon's group at the University of Liege.
 #
-# Copyright (C) 2012-2016 SU2, the open-source CFD code.
+# Copyright (C) 2012-2017 SU2, the open-source CFD code.
 #
 # SU2 is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -353,13 +355,14 @@ def read_config(filename):
                     this_dvSize  = 1
 
                     # if FFD change the first element to work with numbers and float(x)
-                    if data_dict["DV_KIND"][0] in ['FFD_SETTING','FFD_CONTROL_POINT','FFD_DIHEDRAL_ANGLE','FFD_TWIST_ANGLE','FFD_ROTATION','FFD_CAMBER','FFD_THICKNESS','FFD_CONTROL_POINT_2D','FFD_CAMBER_2D','FFD_THICKNESS_2D']:
+                    if data_dict["DV_KIND"][0] in ['FFD_SETTING','FFD_ANGLE_OF_ATTACK','FFD_CONTROL_POINT','FFD_NACELLE','FFD_GULL','FFD_TWIST_2D','FFD_TWIST','FFD_ROTATION','FFD_CAMBER','FFD_THICKNESS','FFD_CONTROL_POINT_2D','FFD_CAMBER_2D','FFD_THICKNESS_2D']:
                         this_dvFFDTag = this_dvParam[0]
                         this_dvParam[0] = '0'
                     else:
                         this_dvFFDTag = []
 
-                    this_dvParam = [ float(x) for x in this_dvParam ]
+                    if not data_dict["DV_KIND"][0] in ['NO_DEFORMATION']:
+                        this_dvParam = [ float(x) for x in this_dvParam ]
 
                     if data_dict["DV_KIND"][0] in ['FFD_CONTROL_POINT_2D']:
                         if this_dvParam[3] == 0 and this_dvParam[4] == 0:
@@ -396,6 +399,7 @@ def read_config(filename):
             if case("AoA")                    : pass
             if case("FIN_DIFF_STEP")          : pass
             if case("CFL_NUMBER")             : pass
+            if case("HB_PERIOD")    : pass
             if case("WRT_SOL_FREQ")           :
                 data_dict[this_param] = float(this_value)
                 break   
@@ -410,6 +414,7 @@ def read_config(filename):
             if case("ADAPT_CYCLES")           :
                 data_dict[this_param] = int(this_value)
                 break                
+            
             
             # unitary design variable definition
             if case("DEFINITION_DV"):
@@ -442,7 +447,7 @@ def read_config(filename):
                     else:
                         this_dvParameters = info_General[2].split(",")
                         # if FFD change the first element to work with numbers and float(x), save also the tag
-                        if this_dvKind in ['FFD_SETTING','FFD_CONTROL_POINT','FFD_DIHEDRAL_ANGLE','FFD_TWIST_ANGLE','FFD_ROTATION','FFD_CAMBER','FFD_THICKNESS','FFD_CONTROL_POINT_2D','FFD_CAMBER_2D','FFD_THICKNESS_2D']:
+                        if this_dvKind in ['FFD_SETTING','FFD_ANGLE_OF_ATTACK','FFD_CONTROL_POINT','FFD_NACELLE','FFD_GULL','FFD_TWIST','FFD_TWIST_2D','FFD_TWIST_ANGLE','FFD_ROTATION','FFD_CAMBER','FFD_THICKNESS','FFD_CONTROL_POINT_2D','FFD_CAMBER_2D','FFD_THICKNESS_2D']:
                           this_dvFFDTag = this_dvParameters[0]
                           this_dvParameters[0] = '0'
                         else:
@@ -480,14 +485,19 @@ def read_config(filename):
             # unitary objective definition
             if case('OPT_OBJECTIVE'):
                 # remove white space
-                this_value = ''.join(this_value.split())                
-                # split by scale
-                this_value = this_value.split("*")
-                this_name  = this_value[0]
-                this_scale = 1.0
-                if len(this_value) > 1:
-                    this_scale = float( this_value[1] )
-                this_def = { this_name : {'SCALE':this_scale} }
+                this_value = ''.join(this_value.split())
+                #split by + 
+                this_def={}
+                this_value = this_value.split(";")
+                
+                for  this_obj in this_value:       
+                    # split by scale
+                    this_obj = this_obj.split("*")
+                    this_name  = this_obj[0]
+                    this_scale = 1.0
+                    if len(this_obj) > 1:
+                        this_scale = float( this_obj[1] )
+                    this_def.update({ this_name : {'SCALE':this_scale} })
                 # save to output dictionary
                 data_dict[this_param] = this_def
                 break
@@ -566,6 +576,8 @@ def read_config(filename):
         data_dict['OPT_BOUND_UPPER'] = 1e10
     if not data_dict.has_key('OPT_BOUND_LOWER'):
         data_dict['OPT_BOUND_LOWER'] = -1e10
+    if not data_dict.has_key('OPT_COMBINE_OBJECTIVE'):
+        data_dict['OPT_COMBINE_OBJECTIVE'] = "NO"
     if not data_dict.has_key('VALUE_OBJFUNC_FILENAME'):
       data_dict['VALUE_OBJFUNC_FILENAME'] = 'of_eval.dat'
     if not data_dict.has_key('GRAD_OBJFUNC_FILENAME'):
@@ -719,7 +731,7 @@ def write_config(filename,param_dict):
                     if not this_kind in ['AOA','MACH_NUMBER']:
                         output_file.write(" | ")
                         # params
-                        if this_kind in ['FFD_SETTING','FFD_CONTROL_POINT','FFD_DIHEDRAL_ANGLE','FFD_TWIST_ANGLE','FFD_ROTATION','FFD_CAMBER','FFD_THICKNESS','FFD_CONTROL_POINT_2D','FFD_CAMBER_2D','FFD_THICKNESS_2D']:
+                        if this_kind in ['FFD_SETTING','FFD_ANGLE_OF_ATTACK','FFD_CONTROL_POINT','FFD_NACELLE','FFD_GULL','FFD_TWIST_ANGLE','FFD_TWIST','FFD_TWIST_2D','FFD_ROTATION','FFD_CAMBER','FFD_THICKNESS','FFD_CONTROL_POINT_2D','FFD_CAMBER_2D','FFD_THICKNESS_2D']:
                             n_param = len(new_value['PARAM'][i_dv])
                             output_file.write("%s , " % new_value['FFDTAG'][i_dv])
                             for i_param in range(1,n_param):
@@ -741,7 +753,6 @@ def write_config(filename,param_dict):
                 break
             
             if case("OPT_OBJECTIVE"):
-                assert len(new_value.keys())==1 , 'only one OPT_OBJECTIVE is currently supported'
                 i_name = 0
                 for name,value in new_value.iteritems():
                     if i_name>0: output_file.write("; ")

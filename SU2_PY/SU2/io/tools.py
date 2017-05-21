@@ -1,9 +1,9 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 ## \file tools.py
 #  \brief file i/o functions
 #  \author T. Lukaczyk, F. Palacios
-#  \version 4.2.0 "Cardinal"
+#  \version 5.0.0 "Raven"
 #
 # SU2 Lead Developers: Dr. Francisco Palacios (Francisco.D.Palacios@boeing.com).
 #                      Dr. Thomas D. Economon (economon@stanford.edu).
@@ -13,8 +13,10 @@
 #                 Prof. Nicolas R. Gauger's group at Kaiserslautern University of Technology.
 #                 Prof. Alberto Guardone's group at Polytechnic University of Milan.
 #                 Prof. Rafael Palacios' group at Imperial College London.
+#                 Prof. Edwin van der Weide's group at the University of Twente.
+#                 Prof. Vincent Terrapon's group at the University of Liege.
 #
-# Copyright (C) 2012-2016 SU2, the open-source CFD code.
+# Copyright (C) 2012-2017 SU2, the open-source CFD code.
 #
 # SU2 is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -195,7 +197,6 @@ def get_headerMap():
                  "CFz"             : "FORCE_Z"                 ,
                  "CL/CD"           : "EFFICIENCY"              ,
                  "CEff"            : "EFFICIENCY"              ,
-                 "CFreeSurface"    : "FREE_SURFACE"            ,
                  "CMerit"          : "FIGURE_OF_MERIT"         ,
                  "CQ"              : "TORQUE"                  ,
                  "CT"              : "THRUST"                  ,
@@ -208,6 +209,9 @@ def get_headerMap():
                  "Avg_Mach"        : "AVG_OUTLET_MACH"         ,
                  "Avg_Temperature" : "AVG_OUTLET_TEMPERATURE"  ,
                  "MassFlowRate"    : "MASS_FLOW_RATE"          ,
+                 "AeroCDrag"       : "AERO_DRAG"               ,
+                 "Radial_Distortion"      : "RADIAL_DISTORTION"              ,
+                 "Circumferential_Distortion"      : "CIRCUMFERENTIAL_DISTORTION"              ,
                  "Time(min)"       : "TIME"                    ,
                  "D(CLift)"        : "D_LIFT"                  ,
                  "D(CDrag)"        : "D_DRAG"                  ,
@@ -218,7 +222,8 @@ def get_headerMap():
                  "D(CFx)"          : "D_FORCE_X"               ,
                  "D(CFy)"          : "D_FORCE_Y"               ,
                  "D(CFz)"          : "D_FORCE_Z"               ,
-                 "D(CL/CD)"        : "D_EFFICIENCY"}
+                 "D(CL/CD)"        : "D_EFFICIENCY"            ,
+                 "ComboObj"        : "COMBO"}
     
     return map_dict
 
@@ -255,7 +260,11 @@ optnames_aero = [ "LIFT"                    ,
                   "INVERSE_DESIGN_PRESSURE" ,
                   "INVERSE_DESIGN_HEATFLUX" ,
                   "TOTAL_HEATFLUX"          ,
-                  "MAXIMUM_HEATFLUX"        ]
+                  "MAXIMUM_HEATFLUX"        ,
+                  "AERO_DRAG"               ,
+                  "RADIAL_DISTORTION"              ,
+                  "CIRCUMFERENTIAL_DISTORTION"              ,
+                  "COMBO"]
 #: optnames_aero
 
 optnames_stab = [ "D_LIFT_D_ALPHA"               ,
@@ -276,6 +285,13 @@ optnames_geo = [ "MAX_THICKNESS"      ,
                  "AREA"               ,
                  "AOA"                ,
                  "CHORD"              ,
+                 "WING_VOLUME"           ,
+                 "WING_MIN_MAXTHICKNESS" ,
+                 "WING_MAX_CHORD"        ,
+                 "WING_MIN_TOC"          ,
+                 "WING_MAX_TWIST"        ,
+                 "WING_MAX_CURVATURE"    ,
+                 "WING_MAX_DIHEDRAL"     ,
                  "MAX_THICKNESS_SEC1" ,
                  "MAX_THICKNESS_SEC2" ,
                  "MAX_THICKNESS_SEC3" ,
@@ -406,7 +422,6 @@ def get_objectiveSign( ObjFun_name ):
             THRUST
             FIGURE_OF_MERIT
             MASS_FLOW_RATE
-            AVG_OUTLET_PRESSURE
             AVG_TOTAL_PRESSURE
         returns +1 otherwise
     """
@@ -418,7 +433,6 @@ def get_objectiveSign( ObjFun_name ):
     if ObjFun_name == "FIGURE_OF_MERIT" : return -1.0
     if ObjFun_name == "MASS_FLOW_RATE" : return -1.0
     if ObjFun_name == "AVG_TOTAL_PRESSURE" : return -1.0
-    if ObjFun_name == "AVG_OUTLET_PRESSURE" : return -1.0
     
     # otherwise
     return 1.0
@@ -473,20 +487,29 @@ def get_adjointSuffix(objective_function=None):
                  "AVG_TOTAL_PRESSURE"      : "pt"        ,
                  "AVG_OUTLET_PRESSURE"     : "pe"        ,
                  "MASS_FLOW_RATE"          : "mfr"       ,
-                 "OUTFLOW_GENERALIZED"       : "chn"       ,
-                 "FREE_SURFACE"            : "fs"       }
+                 "OUTFLOW_GENERALIZED"     : "chn"       ,
+                 "FREE_SURFACE"            : "fs"        ,
+                 "AERO_DRAG"               : "acd"       ,
+                 "RADIAL_DISTORTION"              : "rdis"       ,
+                 "CIRCUMFERENTIAL_DISTORTION"              : "cdis"       ,
+                 "COMBO"                   : "combo"}
     
     # if none or false, return map
     if not objective_function:
         return name_map
-    
-    # return desired objective function suffix
-    elif name_map.has_key(objective_function):
-        return name_map[objective_function]
-    
-    # otherwise...
     else:
-        raise Exception('Unrecognized adjoint function name')
+        # remove white space
+        objective = ''.join(objective_function.split())
+        objective = objective.split(",")
+        nObj = len(objective)
+        if (nObj>1):
+            return "combo"
+        if name_map.has_key(objective[0]):
+            return name_map[objective[0]]
+    
+        # otherwise...
+        else:
+            raise Exception('Unrecognized adjoint function name')
     
 #: def get_adjointSuffix()
     
@@ -520,10 +543,9 @@ def get_dvMap():
     """ get dictionary that maps design variable 
         kind id number to name """
     dv_map = { 1   : "HICKS_HENNE"           ,
-               2   : "COSINE_BUMP"           ,
-               3   : "SPHERICAL"             ,
+               2   : "SURFACE_BUMP"          ,
                4   : "NACA_4DIGITS"          ,
-               5   : "DISPLACEMENT"          ,
+               5   : "TRANSLATION"          ,
                6   : "ROTATION"              ,
                7   : "FFD_CONTROL_POINT"     ,
                8   : "FFD_DIHEDRAL_ANGLE"    ,
@@ -531,13 +553,13 @@ def get_dvMap():
                10  : "FFD_ROTATION"          ,
                11  : "FFD_CAMBER"            ,
                12  : "FFD_THICKNESS"         ,
-               14  : "FOURIER"               ,
                15  : "FFD_CONTROL_POINT_2D"  ,
                16  : "FFD_CAMBER_2D"         ,
                17  : "FFD_THICKNESS_2D"      ,
                19  : "CUSTOM"                ,
-               101 : "MACH_NUMBER"           ,
-               102 : "AOA"                    }
+               20  : "CST"                   ,
+               101 : "ANGLE_OF_ATTACK"       ,
+               102 : "FFD_ANGLE_OF_ATTACK"                    }
     
     return dv_map
 
@@ -598,14 +620,14 @@ def get_gradFileFormat(grad_type,plot_format,kindID,special_cases=[]):
         write_format.append(r'%4d, %.10f, %.10f, %.10f, %.10f, %.10f, %.10f, %.10f, %.10f, %.10f, %.10f, %.10f, %.10f')
         
         for key in special_cases: 
-            if key == "FREE_SURFACE"   : 
-                header.append(r',"Grad_CFreeSurface"')
-                write_format.append(", %.10f ")
             if key == "ROTATING_FRAME" : 
                 header.append(r',"Grad_CMerit","Grad_CT","Grad_CQ"')
                 write_format.append(", %.10f, %.10f, %.10f")
             if key == "EQUIV_AREA"     : 
                 header.append(r',"Grad_CEquivArea","Grad_CNearFieldOF"') 
+                write_format.append(", %.10f, %.10f")
+            if key == "ENGINE"     :
+                header.append(r',"Grad_AeroCDrag","Grad_Distortion"')
                 write_format.append(", %.10f, %.10f")
             if key == "1D_OUTPUT"     :
                 header.append(r',"Grad_Avg_TotalPress","Grad_Avg_Mach","Grad_Avg_Temperature","Grad_MassFlowRate","Grad_FluxAvg_Pressure","Grad_FluxAvg_Density","Grad_FluxAvg_Velocity","Grad_FluxAvg_Enthalpy"')
@@ -636,16 +658,19 @@ def get_gradFileFormat(grad_type,plot_format,kindID,special_cases=[]):
     elif kindID == "HICKS_HENNE"        :
         header.append(r',"Up/Down","Loc_Max"')
         write_format.append(r', %s, %s')
-    elif kindID == "GAUSS_BUMP"       :
-        header.append(r',"Up/Down","Loc_Max","Size_Bump"')
+    elif kindID == "SURFACE_BUMP"        :
+        header.append(r',"Loc_Start","Loc_End","Loc_Max"')
         write_format.append(r', %s, %s, %s')
+    elif kindID == "CST"        :
+        header.append(r',"Up/Down","Kulfan number", "Total Kulfan numbers"')
+        write_format.append(r', %s, %s', '%s')
     elif kindID == "FAIRING"       :
         header.append(r',"ControlPoint_Index","Theta_Disp","R_Disp"')
         write_format.append(r', %s, %s, %s')
     elif kindID == "NACA_4DIGITS"       :
         header.append(r',"1st_digit","2nd_digit","3rd&4th_digits"')
         write_format.append(r', %s, %s, %s')
-    elif kindID == "DISPLACEMENT"       : 
+    elif kindID == "TRANSLATION"       : 
         header.append(r',"x_Disp","y_Disp","z_Disp"')
         write_format.append(r', %s, %s, %s')
     elif kindID == "ROTATION"           : 
@@ -669,9 +694,9 @@ def get_gradFileFormat(grad_type,plot_format,kindID,special_cases=[]):
     elif kindID == "FFD_THICKNESS"      : 
         header.append(r',"FFD_Box_ID","xIndex","yIndex"')
         write_format.append(r', %s, %s, %s')
-    elif kindID == "MACH_NUMBER"        : pass
-    elif kindID == "AOA"                : pass
-    elif kindID == "CUSTOM"             : pass
+    elif kindID == "ANGLE_OF_ATTACK"      : pass
+    elif kindID == "FFD_ANGLE_OF_ATTACK"  : pass
+    elif kindID == "CUSTOM"               : pass
     
     # otherwise...
     else: raise Exception('Unrecognized Design Variable Kind') 
@@ -720,14 +745,14 @@ def get_optFileFormat(plot_format,special_cases=None):
         
     # special cases
     for key in special_cases: 
-        if key == "FREE_SURFACE" :
-            header_list.extend(["CFreeSurface"])
-            write_format.append(r', %.10f ')
         if key == "ROTATING_FRAME" : 
             header_list.extend(["CMerit","CT","CQ"])
             write_format.append(r', %.10f, %.10f, %.10f')
         if key == "EQUIV_AREA"     : 
             header_list.extend(["CEquivArea","CNearFieldOF"]) 
+            write_format.append(r', %.10f, %.10f')
+        if key == "ENGINE"     :
+            header_list.extend(["AeroCDrag","Distortion"])
             write_format.append(r', %.10f, %.10f')
         if key == "1D_OUTPUT":
             header_list.extend(["Avg_TotalPress","Avg_Mach","Avg_Temperature","MassFlowRate","FluxAvg_Pressure","FluxAvg_Density","FluxAvg_Velocity","FluxAvg_Enthalpy"])
@@ -766,7 +791,7 @@ def get_optFileFormat(plot_format,special_cases=None):
 
 def get_extension(output_format):
   
-    if (output_format == "PARAVIEW")        : return ".csv"
+    if (output_format == "PARAVIEW")        : return ".vtk"
     if (output_format == "TECPLOT")         : return ".dat"
     if (output_format == "TECPLOT_BINARY")  : return ".plt"
     if (output_format == "SOLUTION")        : return ".dat"  
@@ -814,9 +839,9 @@ def get_specialCases(config):
     if (config['WRT_SOL_FREQ'] != 1) and ('WRT_UNSTEADY' in special_cases):
         raise Exception('Must set WRT_SOL_FREQ= 1 for WRT_UNSTEADY= YES')
   
-    # Special case for time-spectral
-    if config.has_key('UNSTEADY_SIMULATION') and config['UNSTEADY_SIMULATION'] == 'TIME_SPECTRAL':
-        special_cases.append('TIME_SPECTRAL')
+    # Special case for harmonic balance
+    if config.has_key('UNSTEADY_SIMULATION') and config['UNSTEADY_SIMULATION'] == 'HARMONIC_BALANCE':
+        special_cases.append('HARMONIC_BALANCE')
 
     # Special case for rotating frame
     if config.has_key('GRID_MOVEMENT_KIND') and config['GRID_MOVEMENT_KIND'] == 'ROTATING_FRAME':
