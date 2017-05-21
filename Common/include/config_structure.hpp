@@ -1773,6 +1773,7 @@ public:
   su2double GetDomainVolume(void);
   
   /*!
+
    * \brief In case the <i>RefAreaCoeff</i> is equal to 0 then, it is necessary to compute a reference area,
    *        with this function we set the value of the reference area.
    * \param[in] val_area - Value of the reference area for non dimensional coefficient computation.

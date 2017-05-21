@@ -2087,6 +2087,7 @@ void CDiscAdjMeanFlowIteration::RegisterInput(CSolver ****solver_container, CGeo
       solver_container[iZone][MESH_0][ADJTURB_SOL]->RegisterSolution(geometry_container[iZone][MESH_0], config_container[iZone]);
     }
   }
+
   if (kind_recording == GEOMETRY_VARIABLES) {
     
     /*--- Register node coordinates as input ---*/
@@ -2190,7 +2191,6 @@ void FEM_StructuralIteration(COutput *output, CIntegration ***integration_contai
 #ifdef HAVE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
-
 
   /*--- THIS IS THE DIRECT APPROACH (NO INCREMENTAL LOAD APPLIED) ---*/
 

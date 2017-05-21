@@ -67,7 +67,7 @@ elif not which('mpiexec') is None:
     mpi_Command = 'mpiexec -n %i %s'
 else:
     mpi_Command = ''
-    
+
 from .. import EvaluationFailure, DivergenceFailure
 return_code_map = {
     1 : EvaluationFailure ,

@@ -7185,10 +7185,10 @@ void COutput::SetResult_Files(CSolver ****solver_container, CGeometry ***geometr
     if (rank == MASTER_NODE) {
       
       /*--- Write a native restart file ---*/
-      
+
       if (rank == MASTER_NODE) cout << "Writing SU2 native restart file." << endl;
       SetRestart(config[iZone], geometry[iZone][MESH_0], solver_container[iZone][MESH_0] , iZone);
-      
+
       if (Wrt_Vol) {
         
         switch (FileFormat) {

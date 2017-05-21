@@ -2194,18 +2194,23 @@ void CVolumetricMovement::Rigid_Pitching(CGeometry *geometry, CConfig *config, u
     if (harmonic_balance) {
     	/*--- For harmonic balance, begin movement from the zero position ---*/
     	time_old = 0.0;
-    } else {
+    } else if (config->GetRestart() && (config->GetUnsteady_Simulation() == DT_STEPPING_2ND) && (config->GetUnst_RestartIter() == 2) ) {
+        /*--- Update the angle to real 2nd time-step position in case of restarting
+         *  from steady state without Grid Movement ---*/    
+        time_old = 0.0;
+        if (iter > 2) time_old = (static_cast<su2double> (iter) - 1.0) * deltaT;
+    } else {  
     	time_old = time_new;
     	if (iter != 0) time_old = (static_cast<su2double>(iter)-1.0)*deltaT;
+      }
     }
-  }
-  
+ 
 	/*--- Compute delta change in the angle about the x, y, & z axes. ---*/
   
 	dtheta = -Ampl[0]*(sin(Omega[0]*time_new + Phase[0]) - sin(Omega[0]*time_old + Phase[0]));
 	dphi   = -Ampl[1]*(sin(Omega[1]*time_new + Phase[1]) - sin(Omega[1]*time_old + Phase[1]));
 	dpsi   = -Ampl[2]*(sin(Omega[2]*time_new + Phase[2]) - sin(Omega[2]*time_old + Phase[2]));
-  
+      
   /*--- Angular velocity at the new time ---*/
   
   alphaDot[0] = -Omega[0]*Ampl[0]*cos(Omega[0]*time_new);
@@ -2352,6 +2357,11 @@ void CVolumetricMovement::Rigid_Plunging(CGeometry *geometry, CConfig *config, u
     if (harmonic_balance) {
     	/*--- For harmonic balance, begin movement from the zero position ---*/
     	time_old = 0.0;
+    } else if (config->GetRestart() && (config->GetUnsteady_Simulation() == DT_STEPPING_2ND) && (config->GetUnst_RestartIter() == 2) ) {
+        /*--- Update the position to real 2nd time-step position in case of restarting
+         *  from steady state without Grid Movement ---*/    
+        time_old = 0.0;
+        if (iter > 2) time_old = (static_cast<su2double> (iter) - 1.0) * deltaT;
     } else {
     	time_old = time_new;
     	if (iter != 0) time_old = (static_cast<su2double>(iter)-1.0)*deltaT;
@@ -6008,10 +6018,14 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
   
   /*--- Compute delta time based on physical time step ---*/
   time_new = static_cast<su2double>(iter)*deltaT;
-  if (iter == 0) {
-    time_old = time_new;
+  if (config->GetRestart() && (config->GetUnsteady_Simulation() == DT_STEPPING_2ND) && (config->GetUnst_RestartIter() == 2) ) {
+        /*--- Update the angle to real 2nd time-step position in case of restarting
+         *  from steady state without Grid Movement ---*/    
+        time_old = 0.0;
+        if (iter > 2) time_old = (static_cast<su2double> (iter) - 1.0) * deltaT;
   } else {
-    time_old = static_cast<su2double>(iter-1)*deltaT;
+    time_old = time_new;
+    if (iter != 0) time_old = static_cast<su2double>(iter-1)*deltaT;
   }
 
 	/*--- Store displacement of each node on the pitching surface ---*/

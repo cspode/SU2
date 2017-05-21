@@ -1239,6 +1239,9 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /*!\brief WRT_SOL_FREQ_DUALTIME
    *  \n DESCRIPTION: Writing solution file frequency for dual time  \ingroup Config*/
   addUnsignedLongOption("WRT_SOL_FREQ_DUALTIME", Wrt_Sol_Freq_DualTime, 1);
+  /*!\brief WRT_SURF_FREQ_DUALTIME
+   *  \n DESCRIPTION: Writing surface solution file frequency for dual time  \ingroup Config*/
+   addUnsignedLongOption("WRT_SURF_FREQ_DUALTIME", Wrt_Surf_Freq_DualTime, 1);
   /*!\brief WRT_CON_FREQ
    *  \n DESCRIPTION: Writing convergence history frequency  \ingroup Config*/
   addUnsignedLongOption("WRT_CON_FREQ",  Wrt_Con_Freq, 1);
